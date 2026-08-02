@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'ai_explication' => [
+    'provider' => env('AI_PROVIDER', 'gemini'),
+],
+
+'anthropic' => [
+    'api_key' => env('ANTHROPIC_API_KEY'),
+    'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
+],
+
+'gemini' => [
+    'api_key' => env('GEMINI_API_KEY'),
+    'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
+],
+
 ];

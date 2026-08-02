@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ChapitreController;
 use App\Http\Controllers\Api\MatiereController;
 use App\Http\Controllers\Api\NiveauController;
 use App\Http\Controllers\Api\SequenceController;
+use App\Http\Controllers\Api\ExplicationController;
 use Illuminate\Support\Facades\Route;
 
 // middleware('auth:sanctum') protège toutes ces routes : il faut un
@@ -14,4 +15,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('niveaux', NiveauController::class);
     Route::apiResource('sequences', SequenceController::class);
     Route::apiResource('chapitres', ChapitreController::class);
+
+    Route::post('explications', [ExplicationController::class, 'generer']);
 });
