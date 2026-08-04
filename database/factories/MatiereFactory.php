@@ -10,6 +10,8 @@ class MatiereFactory extends Factory
     {
         return [
             'nom' => 'Mathématiques',
+            'code' => strtoupper($this->faker->unique()->lexify('MAT???')),
+            'description' => $this->faker->sentence(),
         ];
     }
 }
