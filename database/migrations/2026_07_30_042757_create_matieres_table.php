@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('matieres', function (Blueprint $table) {
             $table->id();
             $table->string('nom');
-            $table->string('code')->unique();
+            $table->string('code')->nullable(); // ou ->default('')
             $table->text('description')->nullable();
             $table->timestamps();
         });

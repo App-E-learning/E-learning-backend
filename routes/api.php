@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MatiereController;
 use App\Http\Controllers\Api\NiveauController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SequenceController;
+use App\Http\Controllers\Api\ExplicationController;
 use Illuminate\Support\Facades\Route;
 
 // Routes publiques (pas d'auth requise)
@@ -52,10 +53,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('exercices/import', [ExerciceImportController::class, 'store']);
         Route::get('exercices/brouillons', [ExerciceImportController::class, 'brouillons']);
         Route::post('exercices/{exercice}/valider', [ExerciceImportController::class, 'valider']);
+        Route::post('ia/proposer-correction', [\App\Http\Controllers\Api\Admin\AiCorrectionController::class, 'proposer']);
     });
 
     // Routes réservées aux élèves (section 8.5, 8.6)
     Route::middleware('role:eleve')->group(function () {
         // Futures routes: prochain exercice, soumission de réponse...
     });
+    Route::post('explications', [ExplicationController::class, 'generer']);
 });

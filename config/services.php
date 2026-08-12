@@ -19,6 +19,7 @@ return [
     ],
    'mistral' => [
     'key' => env('MISTRAL_API_KEY'),
+    'model' => env('MISTRAL_MODEL', 'mistral-large-latest'),
    ],
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
@@ -36,5 +37,19 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
+    'ai_explication' => [
+    'provider' => env('AI_PROVIDER', 'gemini'),
+],
+
+'anthropic' => [
+    'api_key' => env('ANTHROPIC_API_KEY'),
+    'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
+],
+
+'gemini' => [
+    'api_key' => env('GEMINI_API_KEY'),
+    'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
+],
 
 ];

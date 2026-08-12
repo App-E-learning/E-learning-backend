@@ -18,7 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ]);
        $middleware->alias([
         'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+        'admin.web' => \App\Http\Middleware\EnsureAdminWeb::class,
     ]);
+      $middleware->redirectGuestsTo(fn ($request) => $request->is('api/*')
+        ? null // force le comportement JSON pour les routes API
+        : route('admin.login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
