@@ -91,6 +91,80 @@ PROMPT;
         return $prompt;
     }
 
+    /**
+     * Découpe le texte brut d'une page scannée contenant plusieurs
+     * exercices en blocs distincts, sans rien résoudre — c'est une étape
+     * de mise en forme, pas de correction. Chaque bloc est ensuite créé
+     * comme une fiche exercice séparée (brouillon), pour que la correction
+     * IA et la relecture humaine restent un exercice à la fois.
+     *
+     * @return array{exercices: array<int, array{titre: string, enonce: string, type_suggere: string}>}
+     */
+    public function decouperExercices(string $texteComplet): array
+    {
+        $resultat = $this->provider->genererTexte(
+            $this->promptSystemeDecoupage(),
+            "Texte brut à découper :\n\n{$texteComplet}",
+        );
+
+        $donnees = $this->extraireJson($resultat['texte']);
+
+        if (! is_array($donnees) || ! isset($donnees['exercices']) || ! is_array($donnees['exercices'])) {
+            Log::warning('IA découpage : JSON inexploitable.', [
+                'texte_brut' => mb_substr($resultat['texte'], 0, 2000),
+            ]);
+
+            throw new RuntimeException("L'IA n'a pas réussi à découper ce texte. Réessaie, ou découpe-le manuellement.");
+        }
+
+        $exercices = collect($donnees['exercices'])
+            ->map(fn ($ex) => [
+                'titre' => (string) ($ex['titre'] ?? 'Exercice'),
+                'enonce' => trim((string) ($ex['enonce'] ?? '')),
+                'type_suggere' => in_array($ex['type_suggere'] ?? null, ['qcm', 'numerique', 'texte_court'], true)
+                    ? $ex['type_suggere']
+                    : 'texte_court',
+            ])
+            ->filter(fn ($ex) => $ex['enonce'] !== '')
+            ->values()
+            ->all();
+
+        if (empty($exercices)) {
+            throw new RuntimeException("Aucun exercice distinct n'a pu être détecté dans ce texte.");
+        }
+
+        return ['exercices' => $exercices];
+    }
+
+    private function promptSystemeDecoupage(): string
+    {
+        return <<<'PROMPT'
+Tu reçois le texte brut d'une page d'examen scannée par OCR, contenant
+PLUSIEURS exercices ou questions numérotées distinctes (ex: "Exercice 1",
+"Exercice 2", "I.", "II."...). Ta tâche est UNIQUEMENT de les séparer,
+PAS de les résoudre ni de les corriger.
+
+Réponds UNIQUEMENT avec un objet JSON valide — aucun texte avant ou
+après, aucun bloc de code markdown — au format EXACT suivant :
+
+{"exercices": [{"titre": "Exercice 1", "enonce": "...", "type_suggere": "qcm"}]}
+
+Règles :
+- Un élément du tableau par exercice détecté, dans l'ordre du document.
+- "enonce" : le texte complet de cet exercice (toutes ses sous-questions
+  a/b/c incluses), nettoyé des artefacts OCR évidents (mots coupés en fin
+  de ligne, espaces en trop) — mais sans reformuler ni résumer le contenu
+  mathématique.
+- "type_suggere" : "qcm" si l'exercice propose déjà des choix (A/B/C/D),
+  "numerique" si la réponse attendue est un nombre ou une expression,
+  "texte_court" sinon.
+- N'insère jamais de retour à la ligne littéral à l'intérieur d'une
+  valeur JSON — utilise des espaces à la place.
+- S'il n'y a en réalité qu'un seul exercice dans le texte, renvoie un
+  tableau avec un seul élément.
+PROMPT;
+    }
+
     private function parserReponse(string $texte, string $type): array
     {
         $donnees = $this->extraireJson($texte);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ImportExerciceRequest;
+use App\Http\Requests\StoreExerciceBrouillonRequest;
 use App\Http\Resources\ExerciceResource;
 use App\Models\Exercice;
 use App\Services\OcrService;
@@ -41,6 +42,31 @@ class ExerciceImportController extends Controller
 
         return (new ExerciceResource($exercice->load('chapitre')))
             ->additional(['ocr_methode' => $resultat['methode']])
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    /**
+     * Crée un brouillon à partir d'un texte déjà disponible (ex: un bloc
+     * issu du découpage IA d'une page à plusieurs exercices), sans passer
+     * par l'OCR. Même logique que store() ci-dessus : statut "brouillon",
+     * pas de corrigé exigé à la création — à compléter avant validation.
+     */
+    public function storeTexte(StoreExerciceBrouillonRequest $request)
+    {
+        $exercice = Exercice::create([
+            'chapitre_id' => $request->validated('chapitre_id'),
+            'enonce' => $request->validated('enonce'),
+            'type' => $request->validated('type'),
+            'options' => $request->validated('options', []) ?: null,
+            'difficulte' => $request->validated('difficulte'),
+            'annee_origine' => $request->validated('annee_origine'),
+            'origine' => 'import_ocr',
+            'statut' => 'brouillon',
+            'texte_ocr_brut' => $request->validated('enonce'),
+        ]);
+
+        return (new ExerciceResource($exercice->load('chapitre')))
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);
     }

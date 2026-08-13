@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DecouperExercicesRequest;
 use App\Http\Requests\ProposerCorrectionRequest;
 use App\Services\AiCorrectionService;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,24 @@ class AiCorrectionController extends Controller
 {
     public function __construct(private readonly AiCorrectionService $service)
     {
+    }
+
+    /**
+     * Découpe le texte d'une page scannée (plusieurs exercices) en blocs
+     * distincts, sans rien résoudre. Ne crée rien en base — l'admin
+     * choisit ensuite lesquels créer comme fiches séparées.
+     */
+    public function decouper(DecouperExercicesRequest $request): JsonResponse
+    {
+        try {
+            $resultat = $this->service->decouperExercices($request->validated('texte'));
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return response()->json(['data' => $resultat]);
     }
 
     /**

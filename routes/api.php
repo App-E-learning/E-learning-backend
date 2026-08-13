@@ -51,9 +51,11 @@ Route::middleware('auth:sanctum')->group(function () {
 // Back-office réservé aux admins (section 8.8 + import OCR section 4.1)
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::post('exercices/import', [ExerciceImportController::class, 'store']);
+        Route::post('exercices/brouillon', [ExerciceImportController::class, 'storeTexte']);
         Route::get('exercices/brouillons', [ExerciceImportController::class, 'brouillons']);
         Route::post('exercices/{exercice}/valider', [ExerciceImportController::class, 'valider']);
         Route::post('ia/proposer-correction', [\App\Http\Controllers\Api\Admin\AiCorrectionController::class, 'proposer']);
+        Route::post('ia/decouper-exercices', [\App\Http\Controllers\Api\Admin\AiCorrectionController::class, 'decouper']);
     });
 
     // Routes réservées aux élèves (section 8.5, 8.6)
