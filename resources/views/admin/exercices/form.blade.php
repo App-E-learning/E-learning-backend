@@ -104,6 +104,12 @@
                 Proposition générée par l'IA — relis-la avant d'enregistrer, elle peut se tromper.
             </p>
 
+            <p id="ia-no-answer-warning" class="hidden text-xs bg-red-50 text-red-800 border border-red-200 rounded-lg px-3 py-2">
+                ⚠️ L'IA n'a proposé <strong>aucune réponse</strong> — elle a détecté une incohérence dans l'énoncé
+                (voir son explication ci-dessous) plutôt que d'inventer un résultat faux. Corrige l'énoncé et relance,
+                ou saisis toi-même la réponse correcte avec le bouton "+ Ajouter une réponse acceptée" ci-dessous.
+            </p>
+
             <div id="reponses-qcm-wrap">
                 <label class="block text-xs font-medium text-slate-600 mb-2">Réponse(s) correcte(s) — coche parmi les options ci-dessus</label>
                 <div id="reponses-qcm-list" class="space-y-1 text-sm"></div>
@@ -433,8 +439,21 @@ async function proposerCorrectionIa() {
         }
 
         document.getElementById('f-explication').value = proposition.explication_officielle;
-        document.getElementById('ia-warning').classList.remove('hidden');
-        toast('Proposition générée — relis-la avant d\'enregistrer');
+
+        if (proposition.reponses_correctes.length === 0) {
+            // L'IA a délibérément renvoyé un tableau vide plutôt que
+            // d'inventer une réponse — généralement parce que l'énoncé
+            // (souvent un OCR imparfait) contient une incohérence qu'elle
+            // explique dans le texte généré. Il ne faut PAS présenter ça
+            // comme une réussite silencieuse.
+            document.getElementById('ia-warning').classList.add('hidden');
+            document.getElementById('ia-no-answer-warning').classList.remove('hidden');
+            toast("L'IA n'a trouvé aucune réponse claire — vérifie l'énoncé.", 'error');
+        } else {
+            document.getElementById('ia-no-answer-warning').classList.add('hidden');
+            document.getElementById('ia-warning').classList.remove('hidden');
+            toast('Proposition générée — relis-la avant d\'enregistrer');
+        }
     } catch (err) {
         toastFromError(err, "L'IA n'a pas pu proposer de correction.");
     } finally {

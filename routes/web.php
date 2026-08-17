@@ -32,5 +32,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::view('import', 'admin.import')->name('import');
         Route::view('brouillons', 'admin.brouillons')->name('brouillons');
+        Route::view('generer-qcm', 'admin.generer-qcm')->name('generer-qcm');
     });
 });

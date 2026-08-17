@@ -13,18 +13,19 @@ class GeminiProvider implements ExplicationProviderInterface
         private readonly string $model,
     ) {}
 
-    public function genererTexte(string $promptSysteme, string $promptUtilisateur): array
+    public function genererTexte(string $promptSysteme, string $promptUtilisateur, int $maxTokens = 600): array
     {
         $response = Http::withHeaders([
                 'x-goog-api-key' => $this->apiKey,
                 'content-type' => 'application/json',
             ])
-            ->timeout(30)
+            ->timeout(60)
             ->retry(2, 500, throw: false)
             ->post('https://generativelanguage.googleapis.com/v1beta/interactions', [
                 'model' => $this->model,
                 'system_instruction' => $promptSysteme,
                 'input' => $promptUtilisateur,
+                'max_output_tokens' => $maxTokens,
             ]);
 
         if ($response->failed()) {

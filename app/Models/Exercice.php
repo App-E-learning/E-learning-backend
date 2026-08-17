@@ -42,6 +42,11 @@ class Exercice extends Model
         return $this->hasOne(Corrige::class);
     }
 
+    public function soumissions()
+    {
+        return $this->hasMany(Soumission::class);
+    }
+
     /**
      * Filtrage: uniquement les exercices dont le chapitre est débloqué.
      * Délègue à Sequence::scopeDebloquees(), déjà en place dans le projet

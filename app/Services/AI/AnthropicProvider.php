@@ -13,18 +13,18 @@ class AnthropicProvider implements ExplicationProviderInterface
         private readonly string $model,
     ) {}
 
-    public function genererTexte(string $promptSysteme, string $promptUtilisateur): array
+    public function genererTexte(string $promptSysteme, string $promptUtilisateur, int $maxTokens = 600): array
     {
         $response = Http::withHeaders([
                 'x-api-key' => $this->apiKey,
                 'anthropic-version' => '2023-06-01',
                 'content-type' => 'application/json',
             ])
-            ->timeout(30)
+            ->timeout(60)
             ->retry(2, 500, throw: false)
             ->post('https://api.anthropic.com/v1/messages', [
                 'model' => $this->model,
-                'max_tokens' => 600,
+                'max_tokens' => $maxTokens,
                 'system' => $promptSysteme,
                 'messages' => [
                     ['role' => 'user', 'content' => $promptUtilisateur],

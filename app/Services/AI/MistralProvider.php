@@ -18,18 +18,18 @@ class MistralProvider implements ExplicationProviderInterface
         private readonly string $model,
     ) {}
 
-    public function genererTexte(string $promptSysteme, string $promptUtilisateur): array
+    public function genererTexte(string $promptSysteme, string $promptUtilisateur, int $maxTokens = 600): array
     {
         if (! $this->apiKey) {
             throw new RuntimeException('MISTRAL_API_KEY absente du fichier .env.');
         }
 
         $response = Http::withToken($this->apiKey)
-            ->timeout(30)
+            ->timeout(60)
             ->retry(2, 500, throw: false)
             ->post('https://api.mistral.ai/v1/chat/completions', [
                 'model' => $this->model,
-                'max_tokens' => 1200,
+                'max_tokens' => max($maxTokens, 1200),
                 'messages' => [
                     ['role' => 'system', 'content' => $promptSysteme],
                     ['role' => 'user', 'content' => $promptUtilisateur],

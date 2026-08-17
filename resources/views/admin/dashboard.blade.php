@@ -42,6 +42,9 @@
         <a href="{{ route('admin.exercices.create') }}" class="bg-primary hover:bg-primary/90 text-white text-sm font-semibold px-4 py-2.5 rounded-lg">
             + Nouvel exercice (saisie manuelle)
         </a>
+        <a href="{{ route('admin.generer-qcm') }}" class="border border-slate-300 hover:bg-slate-100 text-sm font-semibold px-4 py-2.5 rounded-lg">
+            🤖 Générer des QCM par IA
+        </a>
         <a href="{{ route('admin.import') }}" class="border border-slate-300 hover:bg-slate-100 text-sm font-semibold px-4 py-2.5 rounded-lg">
             📥 Importer depuis un scan (OCR)
         </a>

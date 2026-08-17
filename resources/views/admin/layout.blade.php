@@ -33,6 +33,7 @@
                         ['route' => 'admin.sequences', 'label' => 'Séquences', 'icon' => '🗓️'],
                         ['route' => 'admin.chapitres', 'label' => 'Chapitres', 'icon' => '📖'],
                         ['route' => 'admin.exercices', 'label' => 'Exercices', 'icon' => '📝'],
+                        ['route' => 'admin.generer-qcm', 'label' => 'Générer QCM (IA)', 'icon' => '🤖'],
                         ['route' => 'admin.import', 'label' => 'Importer (OCR)', 'icon' => '📥'],
                         ['route' => 'admin.brouillons', 'label' => 'Brouillons', 'icon' => '🕓'],
                     ];

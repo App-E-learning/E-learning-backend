@@ -30,6 +30,7 @@ class AiExplicationService
         $resultat = $this->provider->genererTexte(
             $this->promptSysteme(),
             $this->construirePromptUtilisateur($enonce, $corrigeOfficiel, $reponseEleve),
+            800,
         );
 
         return Explication::create([

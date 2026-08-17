@@ -33,6 +33,7 @@ class AiCorrectionService
         $resultat = $this->provider->genererTexte(
             $this->promptSysteme(),
             $this->promptUtilisateur($enonce, $type, $options),
+            900,
         );
 
         return $this->parserReponse($resultat['texte'], $type);
@@ -69,6 +70,11 @@ Règles :
 - Si tu n'es pas certain à 100%, donne quand même ta meilleure estimation
   rigoureuse plutôt que de refuser de répondre — mais ne réponds jamais
   au hasard : pose le raisonnement mentalement avant de conclure.
+- N'utilise JAMAIS de notation LaTeX (\( \), \[ \], \frac, \pm, \sqrt...) :
+  écris toutes les expressions mathématiques en texte brut lisible (ex:
+  "z = 1 + 2i", "x = (-13 ± 3i√3) / 2", "√3", "x²"). Un backslash suivi
+  d'un caractère qui n'est pas un échappement JSON valide (\", \\, \/,
+  \n...) rend le JSON invalide et fait échouer l'enregistrement.
 - IMPORTANT (format JSON) : n'insère JAMAIS de retour à la ligne littéral
   à l'intérieur d'une valeur texte. Écris tout sur une seule ligne par
   valeur (utilise des espaces ou des points-virgules à la place des
@@ -105,6 +111,7 @@ PROMPT;
         $resultat = $this->provider->genererTexte(
             $this->promptSystemeDecoupage(),
             "Texte brut à découper :\n\n{$texteComplet}",
+            2000,
         );
 
         $donnees = $this->extraireJson($resultat['texte']);
@@ -160,6 +167,11 @@ Règles :
   "texte_court" sinon.
 - N'insère jamais de retour à la ligne littéral à l'intérieur d'une
   valeur JSON — utilise des espaces à la place.
+- N'utilise JAMAIS de notation LaTeX (\( \), \frac, \pm, \sqrt...) dans
+  "enonce" : recopie les expressions mathématiques en texte brut (ex:
+  "x²", "√3", "±"), jamais entourées de \( \). Un backslash suivi d'un
+  caractère qui n'est pas un échappement JSON valide rend le JSON
+  invalide et fait tout échouer.
 - S'il n'y a en réalité qu'un seul exercice dans le texte, renvoie un
   tableau avec un seul élément.
 PROMPT;
@@ -201,7 +213,12 @@ PROMPT;
         // (les chaînes doivent utiliser \n, pas un saut de ligne brut).
         // On neutralise ces caractères de contrôle AVANT chaque tentative
         // de décodage plutôt que de les interdire seulement dans le prompt.
-        $assainir = fn (string $s) => preg_replace('/[\x00-\x1F]+/', ' ', $s);
+        // On répare aussi les backslashes "orphelins" (notation LaTeX du
+        // type \( \), \frac... que le modèle insère parfois malgré la
+        // consigne) : \( n'est pas un échappement JSON valide et fait
+        // échouer tout le décodage, alors qu'un simple \\( (backslash
+        // littéral) est parfaitement valide.
+        $assainir = fn (string $s) => $this->repererEchappementsInvalides(preg_replace('/[\x00-\x1F]+/', ' ', $s));
 
         // 1. Tel quel.
         $donnees = json_decode($assainir($texte), true);
@@ -228,5 +245,35 @@ PROMPT;
         }
 
         return null;
+    }
+
+    /**
+     * Double tout backslash qui n'est PAS suivi d'un caractère d'échappement
+     * JSON valide (" \ / b f n r t u). Sert de filet de sécurité si le
+     * modèle insère quand même de la notation LaTeX (\( \), \frac...)
+     * malgré la consigne du prompt : \( devient \\( (backslash littéral
+     * suivi d'une parenthèse), ce qui est un JSON valide, au lieu de
+     * planter tout le décodage sur un seul caractère mal échappé.
+     * Un backslash déjà suivi d'un caractère valide est laissé intact.
+     */
+    private function repererEchappementsInvalides(string $texte): string
+    {
+        $valides = ['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'];
+        $longueur = mb_strlen($texte);
+        $resultat = '';
+
+        for ($i = 0; $i < $longueur; $i++) {
+            $car = mb_substr($texte, $i, 1);
+
+            if ($car !== '\\') {
+                $resultat .= $car;
+                continue;
+            }
+
+            $suivant = $i + 1 < $longueur ? mb_substr($texte, $i + 1, 1) : '';
+            $resultat .= in_array($suivant, $valides, true) ? '\\' : '\\\\';
+        }
+
+        return $resultat;
     }
 }

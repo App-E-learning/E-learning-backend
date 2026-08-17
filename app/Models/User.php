@@ -40,6 +40,11 @@ class User extends Authenticatable
         return $this->belongsTo(Matiere::class);
     }
 
+    public function soumissions()
+    {
+        return $this->hasMany(Soumission::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
