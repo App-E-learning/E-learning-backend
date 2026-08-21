@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ExerciceSoumissionController;
 use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\MatiereController;
 use App\Http\Controllers\Api\NiveauController;
+use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SequenceController;
 use App\Http\Controllers\Api\ExplicationController;
@@ -39,6 +40,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/', [ProfileController::class, 'update']);
         Route::put('password', [ProfileController::class, 'updatePassword']);
     });
+
+    // Notifications push (rappel quotidien) — un appareil s'enregistre à la
+    // connexion, se désenregistre à la déconnexion.
+    Route::post('device-tokens', [DeviceTokenController::class, 'store']);
+    Route::delete('device-tokens', [DeviceTokenController::class, 'destroy']);
 
     // Référentiel pédagogique (section 8.2) — la lecture (index/show) de
     // matieres/niveaux est publique ci-dessus ; seule l'écriture reste ici,

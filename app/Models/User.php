@@ -45,6 +45,11 @@ class User extends Authenticatable
         return $this->hasMany(Soumission::class);
     }
 
+    public function deviceTokens()
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
