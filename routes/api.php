@@ -9,23 +9,19 @@ use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\MatiereController;
 use App\Http\Controllers\Api\NiveauController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\PushTokenController;
 use App\Http\Controllers\Api\SequenceController;
 use App\Http\Controllers\Api\ExplicationController;
 use Illuminate\Support\Facades\Route;
 
-// Routes publiques (pas d'auth requise)
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
 });
 
-// Lecture publique du référentiel pédagogique (matières, niveaux) :
-// nécessaire pour peupler le formulaire d'inscription AVANT que l'élève
-// ait un compte/token. Rien de sensible n'est exposé ici (juste nom/code).
 Route::apiResource('matieres', MatiereController::class)->only(['index', 'show']);
 Route::apiResource('niveaux', NiveauController::class)->only(['index', 'show']);
 
-// Routes protégées (token Sanctum requis) — voir section 8.1 du cahier des charges
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
@@ -40,9 +36,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('password', [ProfileController::class, 'updatePassword']);
     });
 
-    // Référentiel pédagogique (section 8.2) — la lecture (index/show) de
-    // matieres/niveaux est publique ci-dessus ; seule l'écriture reste ici,
-    // réservée aux admins (gestion back-office).
+    Route::post('push-token', [PushTokenController::class, 'store']);
+    Route::delete('push-token', [PushTokenController::class, 'destroy']);
+
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('matieres', MatiereController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('niveaux', NiveauController::class)->only(['store', 'update', 'destroy']);
@@ -50,17 +46,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('sequences', SequenceController::class);
     Route::apiResource('chapitres', ChapitreController::class);
 
-    // Banque d'exercices (section 8.3)
-    // Lecture accessible aux deux rôles (élève consulte, admin gère) ;
-    // le corrigé n'est chargé que pour les admins (garde-fou dans le contrôleur).
     Route::apiResource('exercices', ExerciceController::class)->only(['index', 'show']);
 
-    // Écriture réservée aux admins
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('exercices', ExerciceController::class)->only(['store', 'update', 'destroy']);
     });
 
-// Back-office réservé aux admins (section 8.8 + import OCR section 4.1)
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::post('exercices/import', [ExerciceImportController::class, 'store']);
         Route::post('exercices/import-auto', [ExerciceImportController::class, 'storeAuto']);
@@ -72,14 +63,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('chapitres/{chapitre}/generer-qcm', [\App\Http\Controllers\Api\Admin\QcmGenerationController::class, 'genererPourChapitre']);
     });
 
-    // Routes réservées aux élèves (section 8.5, 8.6)
     Route::middleware('role:eleve')->group(function () {
-        // Corrige côté serveur, sans jamais exposer reponses_correctes
-        // avant que l'élève ait effectivement soumis sa réponse.
         Route::post('exercices/{exercice}/soumettre', [ExerciceSoumissionController::class, 'store']);
-
-        // Progression personnelle, calculée à partir des soumissions de
-        // l'élève connecté uniquement (voir ProgressController).
         Route::get('progress', [ProgressController::class, 'index']);
     });
     Route::post('explications', [ExplicationController::class, 'generer']);

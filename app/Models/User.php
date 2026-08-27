@@ -9,7 +9,6 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
@@ -43,6 +42,11 @@ class User extends Authenticatable
     public function soumissions()
     {
         return $this->hasMany(Soumission::class);
+    }
+
+    public function pushTokens()
+    {
+        return $this->hasMany(PushToken::class);
     }
 
     public function isAdmin(): bool
