@@ -8,6 +8,12 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('notify:sequence-ending')->dailyAt('08:00');
+Schedule::command('notify:inactive-students')->dailyAt('08:00');
+
+Schedule::command('notify:sequence-ending')->dailyAt('08:00');
+Schedule::command('notify:inactive-students')->dailyAt('08:00');
+
 // Rappel quotidien push à 20h — timezone explicite car le serveur peut
 // tourner en UTC ; app.timezone (config/app.php) n'est pas utilisé
 // automatiquement par le scheduler, il faut le préciser ici.
