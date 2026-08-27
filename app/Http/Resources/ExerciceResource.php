@@ -27,6 +27,19 @@ class ExerciceResource extends JsonResource
                 $request->boolean('with_corrige') && $this->relationLoaded('corrige'),
                 fn () => new CorrigeResource($this->corrige)
             ),
+
+            // Simple indicateur booléen (jamais le contenu de la réponse) —
+            // utilisé par la liste des brouillons pour savoir si le bouton
+            // "Valider" peut être activé, sans avoir à demander with_corrige=1.
+            'corrige_pret' => $this->when(
+                $this->relationLoaded('corrige'),
+                fn () => ! empty($this->corrige?->reponses_correctes)
+            ),
+
+            // Présent uniquement pour un élève (voir ExerciceController::index) :
+            // permet à l'app de reprendre l'entraînement au premier exercice
+            // pas encore réussi, plutôt que de toujours recommencer à 1.
+            'deja_reussi' => $this->when(isset($this->deja_reussi), fn () => $this->deja_reussi),
         ];
     }
 }

@@ -42,7 +42,14 @@ class ExerciceSoumissionController extends Controller
         $reponseElève = $request->validated('reponse');
         $attendues = $exercice->corrige->reponses_correctes ?? [];
 
-        $correct = $this->estCorrecte($exercice->type, $reponseElève, $attendues);
+        // Pas de réponse fournie : l'élève demande juste le corrigé après
+        // avoir travaillé sur papier (typiquement un exercice rédigé à
+        // plusieurs sous-questions, sans réponse unique comparable). On ne
+        // force alors aucun verdict vrai/faux — `correct` reste `null`,
+        // distinct d'une réponse réellement fausse.
+        $correct = ($reponseElève === null || $reponseElève === '')
+            ? null
+            : $this->estCorrecte($exercice->type, $reponseElève, $attendues);
 
         Soumission::create([
             'user_id' => $request->user()->id,

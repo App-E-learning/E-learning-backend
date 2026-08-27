@@ -14,10 +14,13 @@ class SoumettreReponseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // La réponse peut être une chaîne (qcm à choix unique, numérique,
-            // texte court) ou un tableau (qcm à choix multiples) — on reste
-            // permissif ici et on normalise dans le contrôleur.
-            'reponse' => ['required'],
+            // Optionnel : un exercice rédigé à plusieurs sous-questions
+            // (a, b, c...) n'a pas de réponse unique comparable — l'élève
+            // peut simplement demander le corrigé sans avoir soumis de
+            // réponse (auto-évaluation sur papier). Voir
+            // ExerciceSoumissionController::estCorrecte, qui renvoie alors
+            // correct = null plutôt que de forcer un verdict vrai/faux.
+            'reponse' => ['sometimes', 'nullable'],
         ];
     }
 }

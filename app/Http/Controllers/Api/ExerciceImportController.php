@@ -204,7 +204,7 @@ class ExerciceImportController extends Controller
      */
     public function brouillons()
     {
-        $exercices = Exercice::with('chapitre')->brouillons()->orderByDesc('id')->paginate(20);
+        $exercices = Exercice::with('chapitre', 'corrige')->brouillons()->orderByDesc('id')->paginate(20);
 
         return ExerciceResource::collection($exercices);
     }
@@ -216,9 +216,9 @@ class ExerciceImportController extends Controller
      */
     public function valider(Exercice $exercice)
     {
-        if (! $exercice->corrige) {
+        if (! $exercice->corrige || empty($exercice->corrige->reponses_correctes)) {
             return response()->json([
-                'message' => 'Impossible de valider : cet exercice n\'a pas encore de corrigé associé.',
+                'message' => 'Impossible de valider : ce corrigé ne contient encore aucune réponse acceptée.',
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 

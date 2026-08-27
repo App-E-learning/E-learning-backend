@@ -62,7 +62,13 @@ public function scopeDisponibles($query)
     {
 return $query
 ->where('statut', 'valide')
-->whereHas('chapitre.sequence', fn ($q) => $q->debloquees());
+->whereHas('chapitre.sequence', fn ($q) => $q->debloquees())
+// Filet de sécurité : un exercice "valide" sans corrigé exploitable
+// (ex: statut modifié manuellement en base sans passer par valider(),
+// comme c'est arrivé lors d'un nettoyage de brouillons) ne doit
+// jamais être servi à un élève — il n'aurait aucun moyen d'obtenir
+// une correction (voir ExerciceSoumissionController).
+->whereHas('corrige', fn ($q) => $q->whereRaw('JSON_LENGTH(reponses_correctes) > 0'));
     }
 
 public function scopeDifficulte($query, int $niveau)

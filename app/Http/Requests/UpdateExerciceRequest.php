@@ -22,7 +22,7 @@ class UpdateExerciceRequest extends FormRequest
             'annee_origine' => ['sometimes', 'integer', 'min:2000', 'max:' . date('Y')],
 
             'corrige' => ['sometimes', 'array'],
-            'corrige.reponses_correctes' => ['sometimes', 'array', 'min:1'],
+            'corrige.reponses_correctes' => ['sometimes', 'array'],
             'corrige.reponses_correctes.*' => ['string'],
             'corrige.explication_officielle' => ['nullable', 'string'],
             'corrige.bareme' => ['nullable', 'numeric', 'min:0'],

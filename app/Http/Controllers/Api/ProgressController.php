@@ -25,8 +25,14 @@ class ProgressController extends Controller
             ->get();
 
         $exercicesFaits = $soumissions->pluck('exercice_id')->unique();
-        $totalTentatives = $soumissions->count();
-        $tentativesCorrectes = $soumissions->where('correct', true)->count();
+
+        // Seules les soumissions réellement notées (correct = true/false)
+        // entrent dans le score moyen — une simple consultation du corrigé
+        // sans réponse soumise (correct = null, voir
+        // ExerciceSoumissionController) ne doit ni aider ni pénaliser le score.
+        $soumissionsNotees = $soumissions->whereNotNull('correct');
+        $totalTentatives = $soumissionsNotees->count();
+        $tentativesCorrectes = $soumissionsNotees->where('correct', true)->count();
         $scoreMoyen = $totalTentatives > 0 ? round($tentativesCorrectes / $totalTentatives, 2) : 0;
 
         // Dernière tentative par exercice = statut "actuel" de maîtrise

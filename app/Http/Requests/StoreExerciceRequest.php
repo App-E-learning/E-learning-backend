@@ -21,9 +21,11 @@ class StoreExerciceRequest extends FormRequest
             'difficulte' => ['required', 'integer', 'min:1', 'max:5'],
             'annee_origine' => ['required', 'integer', 'min:2000', 'max:' . date('Y')],
 
-            // Corrigé associé — créé en même temps que l'exercice
-            'corrige' => ['required', 'array'],
-            'corrige.reponses_correctes' => ['required', 'array', 'min:1'],
+            // Corrigé associé — peut être complété plus tard (brouillon en
+            // cours de relecture) ; seule la publication (voir
+            // ExerciceImportController::valider) exige un corrigé complet.
+            'corrige' => ['sometimes', 'array'],
+            'corrige.reponses_correctes' => ['sometimes', 'array'],
             'corrige.reponses_correctes.*' => ['string'],
             'corrige.explication_officielle' => ['nullable', 'string'],
             'corrige.bareme' => ['nullable', 'numeric', 'min:0'],

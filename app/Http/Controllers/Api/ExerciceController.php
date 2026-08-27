@@ -15,7 +15,10 @@ class ExerciceController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Exercice::with('chapitre')->orderByDesc('id');
+        // Ordre croissant (création) : une progression pédagogique stable,
+        // nécessaire pour que "reprendre l'entraînement" ait un sens
+        // (sinon l'ordre changerait à chaque nouvel exercice ajouté).
+        $query = Exercice::with('chapitre')->orderBy('id');
 
         $query->when($request->chapitre_id, fn ($q, $v) => $q->where('chapitre_id', $v));
         $query->when($request->type, fn ($q, $v) => $q->where('type', $v));
@@ -29,14 +32,34 @@ class ExerciceController extends Controller
             $query->with('corrige');
         }
 
-        return ExerciceResource::collection($query->paginate($request->integer('per_page', 20)));
+        $exercices = $query->paginate($request->integer('per_page', 20));
+
+        // Annote chaque exercice : l'élève l'a-t-il déjà réussi ? Sert à
+        // "reprendre l'entraînement" côté app (reprendre au premier exercice
+        // pas encore réussi, plutôt que de toujours recommencer à 1).
+        if (! $request->user()->isAdmin()) {
+            $idsReussis = \App\Models\Soumission::where('user_id', $request->user()->id)
+                ->where('correct', true)
+                ->whereIn('exercice_id', $exercices->pluck('id'))
+                ->pluck('exercice_id')
+                ->unique();
+
+            $exercices->getCollection()->each(
+                fn (Exercice $e) => $e->deja_reussi = $idsReussis->contains($e->id)
+            );
+        }
+
+        return ExerciceResource::collection($exercices);
     }
 
     public function store(StoreExerciceRequest $request)
     {
         $exercice = DB::transaction(function () use ($request) {
             $exercice = Exercice::create($request->safe()->except('corrige'));
-            $exercice->corrige()->create($request->validated('corrige'));
+
+            if ($request->has('corrige')) {
+                $exercice->corrige()->create($request->validated('corrige'));
+            }
 
             return $exercice;
         });
