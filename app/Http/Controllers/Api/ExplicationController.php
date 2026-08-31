@@ -28,7 +28,19 @@ class ExplicationController extends Controller
                 reponseEleve: $valide['reponse_eleve'] ?? null,
                 exerciceId: $valide['exercice_id'] ?? null,
             );
-        } catch (RuntimeException $e) {
+        } catch (\Throwable $e) {
+            // \Throwable et pas seulement RuntimeException : certaines
+            // exceptions (ex: Illuminate\Http\Client\ConnectionException en
+            // cas de timeout réseau) n'héritent PAS de RuntimeException et
+            // passaient au travers de ce filet, laissant fuiter le message
+            // technique brut ("cURL error 28...") jusqu'à l'élève — bug
+            // observé en prod. Le détail réel part dans les logs, jamais
+            // dans la réponse envoyée au client.
+            \Illuminate\Support\Facades\Log::error('Explication IA : échec non intercepté par le service.', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+
             // 502 Bad Gateway : notre serveur va bien, c'est le service
             // externe (Claude) qui a échoué — code HTTP sémantiquement correct
             return response()->json([

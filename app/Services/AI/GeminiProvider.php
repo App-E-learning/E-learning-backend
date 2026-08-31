@@ -15,25 +15,46 @@ class GeminiProvider implements ExplicationProviderInterface
 
     public function genererTexte(string $promptSysteme, string $promptUtilisateur, int $maxTokens = 600): array
     {
-        $response = Http::withHeaders([
-                'x-goog-api-key' => $this->apiKey,
-                'content-type' => 'application/json',
-            ])
-            ->timeout(60)
-            ->retry(2, 500, throw: false)
-            ->post('https://generativelanguage.googleapis.com/v1beta/interactions', [
-                'model' => $this->model,
-                'system_instruction' => $promptSysteme,
-                'input' => $promptUtilisateur,
-                'max_output_tokens' => $maxTokens,
-            ]);
+        // Boucle de retry explicite pour les échecs de CONNEXION (timeout,
+        // DNS...) — voir MistralProvider pour le détail du raisonnement.
+        $tentativesMax = 2;
+        $derniereErreur = null;
+
+        for ($tentative = 1; $tentative <= $tentativesMax; $tentative++) {
+            try {
+                $response = Http::withHeaders([
+                        'x-goog-api-key' => $this->apiKey,
+                        'content-type' => 'application/json',
+                    ])
+                    ->timeout(60)
+                    ->post('https://generativelanguage.googleapis.com/v1beta/interactions', [
+                        'model' => $this->model,
+                        'system_instruction' => $promptSysteme,
+                        'input' => $promptUtilisateur,
+                        'max_output_tokens' => $maxTokens,
+                    ]);
+                $derniereErreur = null;
+                break;
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                $derniereErreur = $e;
+                Log::warning("Gemini injoignable, tentative {$tentative}/{$tentativesMax}.", ['erreur' => $e->getMessage()]);
+                if ($tentative < $tentativesMax) {
+                    usleep(500_000);
+                }
+            }
+        }
+
+        if ($derniereErreur !== null) {
+            Log::error('Gemini injoignable après plusieurs tentatives — explication IA', ['erreur' => $derniereErreur->getMessage()]);
+            throw new RuntimeException("Le service IA ne répond pas pour le moment. Réessaie dans quelques instants.");
+        }
 
         if ($response->failed()) {
             Log::error('Echec appel API Gemini (explication IA)', [
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
-            throw new RuntimeException("L'API Gemini a répondu avec une erreur ({$response->status()}).");
+            throw new RuntimeException("Le service IA a rencontré une erreur. Réessaie dans quelques instants.");
         }
 
         $donnees = $response->json();
@@ -47,7 +68,7 @@ class GeminiProvider implements ExplicationProviderInterface
             ->implode("\n");
 
         if (trim($texte) === '') {
-            throw new RuntimeException("L'API Gemini a retourné une réponse vide.");
+            throw new RuntimeException("Le service IA a retourné une réponse vide. Réessaie.");
         }
 
         return [
