@@ -21,6 +21,7 @@ class ProgressController extends Controller
         $user = $request->user();
 
         $soumissions = $user->soumissions()
+            ->with('exercice:id,chapitre_id')
             ->orderByDesc('created_at')
             ->get();
 
@@ -80,11 +81,19 @@ class ProgressController extends Controller
             ];
         });
 
+        // Chapitre le plus récemment travaillé (basé sur la dernière
+        // soumission réelle, toutes chargées avec leur exercice.chapitre_id)
+        // — utilisé par l'app pour que "Reprendre l'entraînement" pointe
+        // vraiment vers ce que l'élève a fait en dernier, au lieu de
+        // toujours proposer le premier chapitre de la liste.
+        $dernierChapitreId = $soumissions->first()?->exercice?->chapitre_id;
+
         return response()->json([
             'streak' => $streak,
             'exercices_faits' => $exercicesFaits->count(),
             'exercices_reussis' => $exercicesReussis,
             'score_moyen' => $scoreMoyen,
+            'dernier_chapitre_id' => $dernierChapitreId,
             'activite_semaine' => $activiteSemaine,
             'mastery_par_chapitre' => $masteryParChapitre,
             'badges' => [
