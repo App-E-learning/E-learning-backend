@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\MatiereController;
 use App\Http\Controllers\Api\NiveauController;
 use App\Http\Controllers\Api\DeviceTokenController;
+use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProfilePhotoController;
 use App\Http\Controllers\Api\SequenceController;
@@ -19,6 +20,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
+    Route::post('google', [GoogleAuthController::class, 'start']);
+    Route::get('google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
+    Route::get('google/session/{sessionId}', [GoogleAuthController::class, 'session']);
 });
 
 // Lecture publique du référentiel pédagogique (matières, niveaux) :
