@@ -15,24 +15,44 @@ class GeminiProvider implements ExplicationProviderInterface
 
     public function genererTexte(string $promptSysteme, string $promptUtilisateur, int $maxTokens = 600): array
     {
-        // Boucle de retry explicite pour les échecs de CONNEXION (timeout,
-        // DNS...) — voir MistralProvider pour le détail du raisonnement.
-        $tentativesMax = 2;
+        $tentativesMax = 3;
         $derniereErreur = null;
+        $response = null;
 
         for ($tentative = 1; $tentative <= $tentativesMax; $tentative++) {
             try {
                 $response = Http::withHeaders([
                         'x-goog-api-key' => $this->apiKey,
                         'content-type' => 'application/json',
+                        'Api-Revision' => '2026-05-20',
                     ])
                     ->timeout(60)
                     ->post('https://generativelanguage.googleapis.com/v1beta/interactions', [
                         'model' => $this->model,
                         'system_instruction' => $promptSysteme,
                         'input' => $promptUtilisateur,
-                        'max_output_tokens' => $maxTokens,
+                        'generation_config' => [
+                            'max_output_tokens' => $maxTokens,
+                        ],
                     ]);
+
+                // 503 (surcharge) et 429 (quota) sont explicitement présentés
+                // par Google comme temporaires — on les retente comme une
+                // ConnectionException, contrairement aux autres erreurs 4xx
+                // (ex. mauvais format de requête) qui ne se résoudront pas
+                // en réessayant.
+                if (in_array($response->status(), [429, 503], true)) {
+                    $derniereErreur = new RuntimeException("Gemini a répondu {$response->status()}.");
+                    Log::warning("Gemini surchargé/quota atteint, tentative {$tentative}/{$tentativesMax}.", [
+                        'status' => $response->status(),
+                    ]);
+                    if ($tentative < $tentativesMax) {
+                        usleep(800_000 * $tentative);
+                        continue;
+                    }
+                    break;
+                }
+
                 $derniereErreur = null;
                 break;
             } catch (\Illuminate\Http\Client\ConnectionException $e) {
@@ -45,7 +65,7 @@ class GeminiProvider implements ExplicationProviderInterface
         }
 
         if ($derniereErreur !== null) {
-            Log::error('Gemini injoignable après plusieurs tentatives — explication IA', ['erreur' => $derniereErreur->getMessage()]);
+            Log::error('Gemini injoignable/surchargé après plusieurs tentatives — explication IA', ['erreur' => $derniereErreur->getMessage()]);
             throw new RuntimeException("Le service IA ne répond pas pour le moment. Réessaie dans quelques instants.");
         }
 
@@ -59,9 +79,9 @@ class GeminiProvider implements ExplicationProviderInterface
 
         $donnees = $response->json();
 
-        // La nouvelle Interactions API structure sa réponse en "steps" :
-        // on cherche l'étape de type "model_output" et on concatène
-        // ses blocs de texte, comme pour Anthropic.
+        // La structure "Interactions" range sa réponse dans "steps" : on
+        // cherche l'étape de type "model_output" et on concatène ses blocs
+        // de texte.
         $texte = collect($donnees['steps'] ?? [])
             ->where('type', 'model_output')
             ->flatMap(fn ($step) => collect($step['content'] ?? [])->where('type', 'text')->pluck('text'))
@@ -73,9 +93,6 @@ class GeminiProvider implements ExplicationProviderInterface
 
         return [
             'texte' => trim($texte),
-            // Cette nouvelle API n'expose pas encore le détail des tokens
-            // dans la réponse de base ; on met 0 par défaut plutôt que
-            // de deviner une structure qui n'existe pas.
             'tokens' => $donnees['usage']['total_tokens'] ?? 0,
         ];
     }
